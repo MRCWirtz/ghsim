@@ -10,7 +10,7 @@ class Simulation:
     def set_surface(self, surf):
         self.surf = surf
 
-    def set_radiation(self, atm, n=1000000, rmax=6500):
+    def set_radiation(self, atm, n=100000, rmax=6500):
         self.atm = atm
         self.rad = radiation.Rays(atm, self.surf.re, n=n, rmax=rmax)
 
@@ -18,4 +18,4 @@ class Simulation:
         while (self.surf._change_temperature()):
             self.surf._external_heat()
             self.surf._radiate(self.rad)
-            print('Temperature: %.1f K' % self.surf.t)
+            print('Temperature: %.2f K' % self.surf.t)
