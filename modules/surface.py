@@ -6,7 +6,7 @@ me = 1e10    # mass earth, in kg
 re = 6.371e6    # radius earth, in m
 c_heat = 1  # specific heat capacity, in J/(kg·K)
 solar_constant = 1367   # W / m^2
-photon_multiplier = 1e17    # batches of photons emitted at the same time
+photon_multiplier = 1e16    # batches of photons emitted at the same time
 photon_constant = 1.072e15 / photon_multiplier
 
 
@@ -14,6 +14,7 @@ class Surface:
 
     def __init__(self, t=0, albedo=0.306, re=6371):
         self.t = t
+        self.t_hist = []
         self.delta_t = None
         self.albedo = albedo
         self.re = re
@@ -32,4 +33,5 @@ class Surface:
         if self.delta_t is None:
             return True
         self.t += self.delta_t
-        return np.abs(self.delta_t) > 0.001
+        self.t_hist.append(self.t)
+        return np.abs(self.delta_t) > 0.01

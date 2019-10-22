@@ -32,26 +32,37 @@ class Rays:
 
             # do update with active rays
             assert self.n_active == np.sum(self.active), "Active mask and numbers differ!"
-            if self.n_active > 0:
-                # propagation
-                distance = np.random.exponential(self.mfp, size=self.n_active)
-                self.x[:, self.active] += distance * self.p[:, self.active]
-
+            while self.n_active > 0:
+                # propagation step
+                self._propagate()
                 # check new state of rays
                 radius = np.sqrt(np.sum(self.x**2, axis=0))
-                # check for leaving rays
-                mask_leave = (radius >= self.rmax) & self.active
-                self.n_active -= np.sum(mask_leave & self.active)
-                self.active[mask_leave] = False
-                e_loss += physics.h * np.sum(self.nu[mask_leave])
-                assert self.n_active == np.sum(self.active), "Active mask and numbers differ!"
-                # check for absorbed rays
-                mask_absorb = (radius < self.re) & self.active
-                self.n_active -= np.sum(mask_absorb)
-                self.active[mask_absorb] = False
-                # check for interaction in atmosphere
-                mask_interaction = (radius >= self.re) & (radius < self.rmax) & self.active
-                n_interact = np.sum(mask_interaction)
-                if n_interact > 0:
-                    self.p[:, mask_interaction] = coord.rand_vec(n_interact)
+                self._interact_atmosphere(radius)
+                e_loss += self._leave_atmosphere(radius)
+                self._absorb_surface(radius)
+
         return e_loss
+
+    def _propagate(self):
+        distance = np.random.exponential(self.mfp, size=self.n_active)
+        self.x[:, self.active] += distance * self.p[:, self.active]
+
+    def _leave_atmosphere(self, radius):
+        # check for leaving rays
+        mask_leave = (radius >= self.rmax) & self.active
+        self.n_active -= np.sum(mask_leave & self.active)
+        self.active[mask_leave] = False
+        return physics.h * np.sum(self.nu[mask_leave])
+
+    def _absorb_surface(self, radius):
+        # check for absorbed rays
+        mask_absorb = (radius < self.re) & self.active
+        self.n_active -= np.sum(mask_absorb)
+        self.active[mask_absorb] = False
+
+    def _interact_atmosphere(self, radius):
+        # check for interaction in atmosphere
+        mask_interaction = (radius >= self.re) & (radius < self.rmax) & self.active
+        n_interact = np.sum(mask_interaction)
+        if n_interact > 0:
+            self.p[:, mask_interaction] = coord.rand_vec(n_interact)
