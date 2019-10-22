@@ -1,6 +1,5 @@
 import numpy as np
-from astrotools import coord
-from modules import physics
+from modules import coord, physics
 
 
 class Rays:
@@ -12,8 +11,8 @@ class Rays:
         self.rmax = rmax
         self.re = re
         self.mfp = atm.mfp
-        self.x = re * coord.rand_vec(n)
-        self.p = coord.rand_vec_on_surface(self.x, n)
+        self.x = re * coord.rand_vec(n)     # position vector on Earth surface
+        self.p, self.theta = coord.rand_vec_on_surface(self.x)     # rotate to respective position on sphere
         self.nu = np.zeros(n)
         self.active = np.zeros(n).astype(bool)
 
@@ -24,7 +23,7 @@ class Rays:
             avail = ~self.active
             indices = np.random.choice(self.nmax, size=batch, replace=False, p=avail/float(avail.sum()))
             self.x[:, indices] = self.re * coord.rand_vec(batch)
-            self.p[:, indices] = coord.rand_vec_on_surface(self.x[:, indices], batch)
+            self.p[:, indices], self.theta[indices] = coord.rand_vec_on_surface(self.x[:, indices], batch)
             self.nu[indices] = physics.rand_planck_frequency(T, batch)
             self.active[indices] = True
             self.n_active += batch
