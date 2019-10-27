@@ -4,11 +4,11 @@ from modules import coord, physics
 
 class Rays:
 
-    def __init__(self, atm, re, n, rmax):
+    def __init__(self, atm, re, n, hmax):
 
         self.nmax = n
         self.n_active = 0
-        self.rmax = rmax
+        self.rmax = re + hmax
         self.re = re
         self.atm = atm
         self.x = re * coord.rand_vec(n)     # position vector on Earth surface
@@ -44,7 +44,7 @@ class Rays:
                 self._interact_atmosphere()
                 e_loss += self._leave_atmosphere()
                 self._absorb_surface()
-        print('Absorbed: %i (%.5f)' % (self.absorbed, self.absorbed / max(1, ntot)))
+        print('Batches absorbed: %i (fraction of emitted: %.5f)' % (self.absorbed, self.absorbed / max(1, ntot)))
         return e_loss
 
     def _propagate(self):
@@ -63,7 +63,7 @@ class Rays:
         self.n_active -= np.sum(mask_leave)
         self.active[mask_leave] = False
         self.collect_leave[mask_leave] = False
-        return physics.h * np.sum(self.nu[mask_leave])
+        return physics.h * np.sum(self.nu[mask_leave])  # in Joule
 
     def _absorb_surface(self):
         # check for absorbed rays

@@ -10,9 +10,14 @@ class Simulation:
     def set_surface(self, surf):
         self.surf = surf
 
-    def set_radiation(self, atm, n=100000, rmax=6500):
+    def set_radiation(self, atm, nbatch=100000, hmax=500):
+        """
+        :param atm: Atmosphere object
+        :param n: number of vectorized calculations in one batch
+        :param hmax: Maximum height over sea level, in km
+        """
         self.atm = atm
-        self.rad = radiation.Rays(atm, self.surf.re, n=n, rmax=rmax)
+        self.rad = radiation.Rays(atm, self.surf.re, n=nbatch, hmax=hmax)
 
     def run(self):
         while (self.surf._change_temperature()):
