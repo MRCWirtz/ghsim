@@ -67,16 +67,21 @@ plt.savefig('c02_wavelength_2250_2500.png', bbox_inches='tight')
 plt.close()
 
 # plot all cross sections in the relevant regime
-wavelength_all = np.array([])
+wave_numbers_all = np.array([])
 cross_section_all = np.array([])
 for _file in glob.glob('02_*.par'):
     data = np.genfromtxt(_file, usecols=(1, 2))
-    wavelength_all = np.append(wavelength_all, data[:, 0])
+    wave_numbers_all = np.append(wave_numbers_all, data[:, 0])
     cross_section_all = np.append(cross_section_all, data[:, 1])
 
-_sort = np.argsort(wavelength_all)
+# sort wave numbers
+_sort = np.argsort(wave_numbers_all)
+wave_numbers_all = wave_numbers_all[_sort]
+# remove double occuring wavelengths
+wave_numbers_all, indices = np.unique(wave_numbers_all, return_index=True)
+cross_section_all = cross_section_all[_sort][indices]
 
-plt.plot(wavelength_all[_sort], cross_section_all[_sort], color='k')
+plt.plot(wave_numbers_all, cross_section_all, color='k')
 plt.xlabel('wave number [1 / cm]', fontsize=16)
 plt.ylabel('cross section [cm^2]', fontsize=16)
 plt.savefig('c02_wavelength_all.pdf', bbox_inches='tight')
@@ -88,33 +93,32 @@ co2_fraction = 0.0004
 n_density = 2.504e25
 attenuation = cross_section_all * 1e-4 * co2_fraction * n_density
 block = 1 - np.exp(-attenuation*h0)
-cut = attenuation[_sort] >= 1 / (100 * h0)
-wave_numbers = wavelength_all[_sort]
-wn_mid = (wave_numbers[1:] + wave_numbers[:-1]) / 2.
-wn_left = np.append(wn_mid[0]-2*(wn_mid[0]-wave_numbers[0]), wn_mid)[cut]
-wn_right = np.append(wn_mid, wn_mid[-1]+2*(wave_numbers[-1]-wn_mid[-1]))[cut]
-cross_sections = cross_section_all[_sort][cut]
-print('total wavelength in database: ', len(wavelength_all))
-print('subset with cut 1/(100*h0): ', len(wavelength_all[cut]))
-plt.plot(wavelength_all[_sort], block[_sort], color='grey')
-plt.plot(wave_numbers[cut], block[_sort][cut], color='red')
+# cut out only high cross sections
+cut = attenuation >= 1 / (100 * h0)
+wn_mid = (wave_numbers_all[1:] + wave_numbers_all[:-1]) / 2.
+wn_left = np.append(wn_mid[0]-2*(wn_mid[0]-wave_numbers_all[0]), wn_mid)[cut]
+wn_right = np.append(wn_mid, wn_mid[-1]+2*(wave_numbers_all[-1]-wn_mid[-1]))[cut]
+print('total wavelength in database: ', len(wave_numbers_all))
+print('subset with cut 1/(100*h0): ', len(wave_numbers_all[cut]))
+plt.plot(wave_numbers_all, block, color='grey')
+plt.plot(wave_numbers_all[cut], block[cut], color='red')
 plt.xlabel('wave number [1 / cm]', fontsize=16)
 plt.ylabel('fraction absorped', fontsize=16)
 plt.savefig('c02_absorped.pdf', bbox_inches='tight')
 plt.close()
 
-wn_interpolate, indices = np.unique(wavelength_all[_sort], return_index=True)
-interp_indices = interp1d(wn_interpolate, np.cumsum(cut)[indices]-1, kind='nearest',
+print(np.cumsum(cut)[cut]-1)
+interp_indices = interp1d(wave_numbers_all[cut], np.cumsum(cut)[cut]-1, kind='nearest',
                           assume_sorted=True, bounds_error=False)
-plt.plot(wavelength_all[_sort], np.cumsum(cut)-1, color='k')
-_wn = np.linspace(np.min(wavelength_all), np.max(wavelength_all), 100000)
+plt.plot(wave_numbers_all, np.cumsum(cut)-1, color='k')
+_wn = np.linspace(np.min(wave_numbers_all), np.max(wave_numbers_all), 100000)
 plt.plot(_wn, interp_indices(_wn), color='red', alpha=0.3)
 plt.xlabel('wave number [1 / cm]', fontsize=16)
 plt.ylabel('indice to take', fontsize=16)
 plt.savefig('c02_wave_number_indice.pdf', bbox_inches='tight')
 plt.close()
 np.savez('co2_cross_section.npz', wave_numbers_left=wn_left, wave_numbers_right=wn_right,
-         cross_sections=cross_sections, interp_indices=interp_indices)
+         cross_sections=cross_section_all[cut], interp_indices=interp_indices)
 
 
 # _model = fit_sigmoid_mixture_model(wn_interpolate, np.cumsum(cut)[indices]-1, n=3)
@@ -157,8 +161,8 @@ def planck(nu, T, norm=False):
     return intensity
 
 
-nu = lam2nu(1 / wavelength_all[_sort] * 1e-2)  # frequency in Hz
-plt.plot(wavelength_all[_sort], cross_section_all[_sort] * planck(nu, 270) * nu)
+nu = lam2nu(1 / wave_numbers_all * 1e-2)  # frequency in Hz
+plt.plot(wave_numbers_all, cross_section_all * planck(nu, 270) * nu)
 plt.xlabel('wave number [1 / cm]', fontsize=16)
 plt.ylabel('relevance', fontsize=16)
 plt.savefig('c02_relevance_all.pdf', bbox_inches='tight')
