@@ -1,5 +1,6 @@
 import numpy as np
 import glob
+import os
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
@@ -81,7 +82,7 @@ wave_numbers_all = wave_numbers_all[_sort]
 wave_numbers_all, indices = np.unique(wave_numbers_all, return_index=True)
 cross_section_all = cross_section_all[_sort][indices]
 
-plt.plot(wave_numbers_all, cross_section_all, color='k')
+plt.step(wave_numbers_all, cross_section_all, where='mid', color='k', linewidth=0.1)
 plt.xlabel('wave number [1 / cm]', fontsize=16)
 plt.ylabel('cross section [cm^2]', fontsize=16)
 plt.savefig('c02_wavelength_all.pdf', bbox_inches='tight')
@@ -94,20 +95,24 @@ n_density = 2.504e25
 attenuation = cross_section_all * 1e-4 * co2_fraction * n_density
 block = 1 - np.exp(-attenuation*h0)
 # cut out only high cross sections
-cut = attenuation >= 1 / (100 * h0)
+cut = block > 1e-3
 wn_mid = (wave_numbers_all[1:] + wave_numbers_all[:-1]) / 2.
 wn_left = np.append(wn_mid[0]-2*(wn_mid[0]-wave_numbers_all[0]), wn_mid)[cut]
 wn_right = np.append(wn_mid, wn_mid[-1]+2*(wave_numbers_all[-1]-wn_mid[-1]))[cut]
 print('total wavelength in database: ', len(wave_numbers_all))
 print('subset with cut 1/(100*h0): ', len(wave_numbers_all[cut]))
-plt.plot(wave_numbers_all, block, color='grey')
-plt.plot(wave_numbers_all[cut], block[cut], color='red')
-plt.xlabel('wave number [1 / cm]', fontsize=16)
-plt.ylabel('fraction absorped', fontsize=16)
-plt.savefig('c02_absorped.pdf', bbox_inches='tight')
-plt.close()
+block_cut = np.copy(block)
+block_cut[~cut] = 0
+os.makedirs('c02_absorped', exist_ok=True)
+for xmin, xmax in zip([500, 500, 800, 1150, 1850, 2000, 2200], [2500, 800, 1150, 1850, 2000, 2200, 2500]):
+    plt.step(wave_numbers_all, block, where='mid', color='grey', linewidth=0.1)
+    plt.step(wave_numbers_all, block_cut, where='mid', color='red', linewidth=0.1)
+    plt.xlabel('wave number [1 / cm]', fontsize=16)
+    plt.ylabel('fraction absorped', fontsize=16)
+    plt.xlim([xmin, xmax])
+    plt.savefig('c02_absorped/min%i_max%i.pdf' % (xmin, xmax) if (xmax-xmin != 2000) else 'c02_absorped.pdf', bbox_inches='tight')
+    plt.close()
 
-print(np.cumsum(cut)[cut]-1)
 interp_indices = interp1d(wave_numbers_all[cut], np.cumsum(cut)[cut]-1, kind='nearest',
                           assume_sorted=True, bounds_error=False)
 plt.plot(wave_numbers_all, np.cumsum(cut)-1, color='k')

@@ -5,7 +5,7 @@ me = 5.97e24    # mass earth, in kg
 re = 6371    # radius earth, in km
 c_heat = 1  # specific heat capacity, in J/(kg·K)
 solar_constant = 1367   # W / m^2
-photon_multiplier = 1e40    # batches of photons emitted at the same time
+photon_multiplier = 1e42    # batches of photons emitted at the same time
 photon_constant = 1.072e15 / photon_multiplier
 
 time_acceleration = 10. * (365 * 24 * 3600)    # 1 corresponds to a second

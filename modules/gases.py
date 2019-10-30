@@ -37,14 +37,25 @@ class CarbonDioxide(Gas):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    from modules.physics import rand_planck_frequency
+
     wn_all = np.linspace(1, 2500, 1000000)
     nu_all = c * 1e2 * wn_all
     gas = CarbonDioxide(fraction=1)
     cross_sections = gas.get_attenuation(nu_all)
-    plt.plot(wn_all, cross_sections, color='k')
-    plt.yscale('log')
-    plt.xlabel('wave number [1 / cm]', fontsize=16)
-    plt.ylabel('cross section [cm^2]', fontsize=16)
+    nus = rand_planck_frequency(255, 1000000)
+    fig, ax1 = plt.subplots()
+
+    ax1.set_xlabel('wave number [1 / cm]', fontsize=16)
+    ax1.set_ylabel('cross section [cm^2]', fontsize=16, color='tab:red')
+    ax1.plot(wn_all, cross_sections, color='red')
+    ax1.tick_params(axis='y', labelcolor='tab:red')
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel('frequency', color='k')
+    ax2.hist(nu2wn(nus), 100, histtype='step', color='k')
+    ax2.tick_params(axis='y', labelcolor='k')
+    ax2.set_yscale('log')
     plt.show()
 
     # show as a function of the cross section which fraction of upgoing
@@ -63,4 +74,12 @@ if __name__ == "__main__":
     plt.yscale('log')
     plt.xlabel('cross section [cm^2]', fontsize=14)
     plt.ylabel('fraction absorped', fontsize=14)
+    plt.show()
+
+    attenuation = number_density * (1e-4 * gas.get_attenuation(nus)) * 1e3
+    block = 1 - np.exp(-attenuation * 1e4)
+    plt.hist(block, bins=100, histtype='step', color='k')
+    plt.yscale('log')
+    plt.xlabel('blocked', fontsize=14)
+    plt.ylabel('entries', fontsize=14)
     plt.show()
